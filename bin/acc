@@ -1,0 +1,24 @@
+#!/bin/sh
+# Resolve the real path of this script (following symlinks) so that a
+# symlink in e.g. ~/.local/bin still finds the repo root.
+resolve_real_path() {
+    target="$1"
+    while [ -h "$target" ]; do
+        dir=$(cd -P "$(dirname "$target")" && pwd)
+        target=$(readlink "$target")
+        case "$target" in
+            /*) ;;
+            *) target="$dir/$target" ;;
+        esac
+    done
+    dir=$(cd -P "$(dirname "$target")" && pwd)
+    echo "$dir/$(basename "$target")"
+}
+
+SCRIPT_PATH=$(resolve_real_path "$0")
+REPO_ROOT=$(cd -P "$(dirname "$SCRIPT_PATH")/.." && pwd)
+
+PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH
+
+exec python3 -m acc "$@"

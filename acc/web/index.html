@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Context Controller</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --card-2: #fafafb;
+    --text: #1a1a1a;
+    --muted: #666;
+    --border: #ddd;
+    --accent: #2d6cdf;
+    --accent-text: #fff;
+    --danger: #c0392b;
+    --ok: #2e7d32;
+    --stripe-s: 55%;
+    --stripe-l: 55%;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --card: #232427;
+      --card-2: #1c1d20;
+      --text: #eee;
+      --muted: #999;
+      --border: #3a3b3e;
+      --accent: #5a8dee;
+      --accent-text: #0b0c0e;
+      --danger: #e57373;
+      --ok: #81c784;
+      --stripe-s: 55%;
+      --stripe-l: 65%;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 16px;
+    padding-bottom: 200px;
+  }
+  @media (max-width: 640px) {
+    body { padding-bottom: 90px; }
+  }
+  h1 { font-size: 18px; margin: 0 0 16px; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  h3 { font-size: 13px; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  select, input[type=text], input[type=number], textarea {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  textarea { width: 100%; resize: vertical; min-height: 70px; }
+  #section-ultimate .section-body { max-width: 760px; }
+  textarea.autosize {
+    font-size: 14px; line-height: 1.75; padding: 10px 14px;
+    min-height: 0; overflow: hidden; resize: none;
+  }
+  button {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button.danger { color: var(--danger); border-color: var(--danger); }
+  button.ghost { background: transparent; border-color: transparent; padding: 3px 6px; }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 12px; background: var(--bg);
+  }
+  .dot.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .project-item {
+    border-top: 1px solid var(--border);
+    padding: 10px 0;
+    transition: background-color 0.3s ease;
+    border-radius: 6px;
+  }
+  .project-item:first-child { border-top: none; }
+  .project-item.highlight { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  .project-item .proj-title { font-weight: 600; font-size: 13px; }
+  .project-item .proj-path { font-size: 11px; color: var(--muted); word-break: break-all; }
+  .project-chip {
+    display: inline-block; padding: 1px 7px; border-radius: 10px;
+    font-size: 11px; border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; background: var(--bg);
+  }
+  .project-chip:hover { filter: brightness(1.08); }
+  .badge {
+    display: inline-block; padding: 1px 7px; border-radius: 10px;
+    font-size: 11px; border: 1px solid var(--border); color: var(--muted);
+    white-space: nowrap;
+  }
+  .badge.active { color: var(--ok); border-color: var(--ok); }
+  .badge.danger { color: var(--danger); border-color: var(--danger); }
+  .badge.accent { color: var(--accent); border-color: var(--accent); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12px; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary:before { content: "▸ "; }
+  details[open] summary:before { content: "▾ "; }
+  pre {
+    white-space: pre-wrap; word-break: break-word;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px; font-size: 12px;
+  }
+  /* Two-column layouts are stacked into one column for readability. */
+  .grid2 { display: flex; flex-direction: column; gap: 12px; }
+  .field-label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* -- session cards -- */
+  #session-sections { display: flex; flex-direction: column; gap: 10px; }
+  .session-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+  }
+  .stripe { width: 4px; flex: 0 0 4px; }
+  .session-body { flex: 1; min-width: 0; padding: 12px 14px; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; cursor: pointer; }
+  .card-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .card-title { font-weight: 600; font-size: 14px; }
+  .card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
+  .short-id {
+    font-size: 11px; color: var(--muted); cursor: pointer;
+    border: 1px dashed var(--border); border-radius: 4px; padding: 0 4px;
+  }
+  .pencil { cursor: pointer; opacity: 0.6; font-size: 12px; border: none; background: none; color: var(--text); }
+  .pencil:hover { opacity: 1; }
+  .card-oneliner { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+  .card-expand-body { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .section-block { margin-top: 14px; }
+  .section-block:first-child { margin-top: 0; }
+
+  /* -- timeline -- */
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+  .tl-item { background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .tl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+  .tl-head-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .tl-obj { font-size: 13px; margin-top: 4px; }
+  .tl-range { font-size: 11px; color: var(--muted); }
+  .tl-detail { margin-top: 8px; font-size: 12.5px; }
+  .tl-detail .muted { display: block; margin-top: 4px; }
+
+  .closing-panel { margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 8px; }
+  .segmented { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; width: fit-content; }
+  .segmented button { border: none; border-radius: 0; }
+  .segmented button + button { border-left: 1px solid var(--border); }
+  .segmented button.selected { background: var(--accent); color: var(--accent-text); }
+
+  .inline-confirm { margin-top: 6px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-2); }
+
+  /* -- session card top row: rapport (left) + project chip (right) -- */
+  .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .card-top-row > .s-rapport-wrap { flex: 1 1 260px; min-width: 220px; }
+  .card-project-chip-wrap { flex: 0 0 auto; text-align: right; }
+  .work-log-controls { flex: 0 0 auto; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .work-log-controls .work-log-btn-row { display: flex; gap: 6px; }
+  .rapport-changes { margin: 2px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
+  .rapport-changes li { margin: 1px 0; }
+  .work-log-view { min-width: 0; }
+  .work-log-view-head { display: flex; align-items: center; justify-content: space-between; }
+  .work-log-view pre { margin: 4px 0 0; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  .project-chip-edit-row { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+
+  /* -- active objective block -- */
+  .active-block {
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  }
+  .active-block.unset { border-color: var(--border); background: var(--card-2); }
+  .active-block-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .active-block-title { font-weight: 600; font-size: 13px; }
+  .active-field-label { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .active-field-text { font-size: 13.5px; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
+  .active-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* -- parked queue -- */
+  .parked-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .parked-row {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px;
+    background: var(--card-2);
+  }
+  .parked-row.drag-over { border-color: var(--accent); }
+  .parked-handle { cursor: grab; color: var(--muted); user-select: none; }
+  .parked-order { font-size: 11px; color: var(--muted); width: 1.4em; text-align: center; flex: 0 0 auto; }
+  .parked-body { flex: 1; min-width: 0; }
+  .parked-obj { font-size: 13px; }
+  .parked-criteria { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .parked-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .parked-actions { display: flex; gap: 4px; flex-direction: column; align-items: flex-end; flex: 0 0 auto; }
+  .parked-actions .row { flex-wrap: nowrap; }
+
+  .segments-line { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  #toast-wrap { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; pointer-events: none; z-index: 50; }
+  .toast { background: var(--danger); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); pointer-events: auto; max-width: 90vw; }
+
+  .section-summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 6px 2px; }
+  .section-summary .muted { font-size: 12px; }
+
+  /* -- collapsible top-level sections -- */
+  details.card { padding: 0; }
+  details.card > summary.top-summary {
+    padding: 14px; cursor: pointer; list-style: none; display: flex;
+    align-items: center; justify-content: space-between; gap: 10px;
+  }
+  details.card > summary.top-summary::-webkit-details-marker { display: none; }
+  details.card > summary.top-summary::before { content: "▸ "; color: var(--muted); }
+  details.card[open] > summary.top-summary::before { content: "▾ "; }
+  details.card > summary.top-summary h2 { display: inline; margin: 0; }
+  details.card > .section-body { padding: 0 14px 14px; }
+  .top-summary-meta { font-size: 12px; color: var(--muted); text-align: right; }
+
+  /* -- save feedback -- */
+  button.save-ok { background: var(--ok); color: #fff; border-color: var(--ok); }
+  button.save-err { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .field-dirty { border-color: #d9a441 !important; box-shadow: 0 0 0 1px #d9a441 inset; }
+  .unsaved-badge {
+    display: none; font-size: 11px; color: #b5872a; margin-left: 6px;
+  }
+
+  /* -- suggestions / history -- */
+  .suggestion-item {
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    margin-top: 8px; background: var(--card-2);
+  }
+  .suggestion-item .sug-text { font-size: 13px; }
+  .suggestion-item .sug-reason { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .suggestion-item .sug-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .history-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .history-item { font-size: 12px; border-top: 1px solid var(--border); padding-top: 6px; }
+  .history-item .hist-meta { color: var(--muted); font-size: 11px; }
+  .history-item .hist-arrow { margin: 2px 0; }
+  .edits-list { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+  .edits-list .edit-item { font-size: 12px; border-left: 2px solid var(--border); padding-left: 8px; }
+
+  /* -- Rapport on/off switch -- */
+  .switch { position: relative; display: inline-block; width: 36px; height: 20px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: var(--border); border-radius: 999px; transition: background-color .15s;
+  }
+  .switch .slider:before {
+    content: ""; position: absolute; height: 14px; width: 14px; left: 3px; top: 3px;
+    background: var(--card); border-radius: 50%; transition: transform .15s;
+  }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(16px); }
+  .rapport-dim { opacity: 0.45; }
+
+  /* -- floating rapport-default widget -- */
+  #section-rapport {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 40;
+    width: 270px;
+    max-width: calc(100vw - 32px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.28);
+    padding: 12px;
+  }
+  #section-rapport.minimized { display: none; }
+  .rapport-widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .rapport-widget-title { font-weight: 600; font-size: 13px; }
+  .rapport-hint { margin-top: 6px; }
+  #rapport-pill {
+    display: none;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 40;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: 1px solid var(--accent);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.28);
+  }
+  #rapport-pill.visible { display: block; }
+  .work-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .work-toggle-label { display: flex; flex-direction: column; gap: 2px; }
+  .work-toggle-state { font-weight: 600; font-size: 13px; }
+  .work-toggle-since { font-size: 11px; color: var(--muted); }
+
+  /* -- 「複製工作紀錄」範圍選單 -- */
+  .work-log-controls { position: relative; }
+  .work-log-btn-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .btn-worklog-menu-toggle { padding: 4px 8px; }
+  .work-log-menu {
+    margin-top: 6px;
+    display: flex; flex-direction: column; gap: 4px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--card-2); padding: 8px; width: fit-content;
+  }
+  .work-log-menu-item { text-align: left; }
+  .work-log-menu-item.selected { background: var(--accent); color: var(--accent-text); }
+  .work-log-range-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .work-log-range-note { font-size: 12px; color: var(--muted); }
+  @media (max-width: 640px) {
+    #section-rapport {
+      left: 16px;
+      right: 16px;
+      bottom: 0;
+      width: auto;
+      max-width: none;
+      border-radius: 10px 10px 0 0;
+    }
+    #rapport-pill { left: 16px; right: auto; }
+  }
+
+  /* -- preset management modal -- */
+  #preset-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #preset-modal-backdrop.open { display: flex; }
+  #preset-modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 85vh;
+    overflow: auto;
+    padding: 16px;
+  }
+  #preset-modal h2 { margin-bottom: 12px; }
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  .level-edit-row { border-top: 1px solid var(--border); padding: 10px 0; }
+  .level-edit-row:first-child { border-top: none; }
+</style>
+</head>
+<body>
+<h1>Agent Context Controller</h1>
+
+<div class="card">
+  <div class="row" style="justify-content: space-between;">
+    <span class="muted" id="root-path"></span>
+    <span class="muted" id="windows-root"></span>
+  </div>
+</div>
+
+<details class="card" id="section-sessions">
+  <summary class="top-summary"><h2>對話</h2><span class="top-summary-meta" id="sessions-collapsed-summary"></span></summary>
+  <div class="section-body">
+  <div id="session-sections"></div>
+  </div>
+</details>
+
+<details class="card" id="section-projects">
+  <summary class="top-summary"><h2>Goals · Projects</h2><span class="top-summary-meta" id="projects-collapsed-summary"></span></summary>
+  <div class="section-body">
+  <div id="project-list"></div>
+  <details style="margin-top: 12px;">
+    <summary>手動加入一個專案路徑</summary>
+    <div class="row" style="margin-top: 8px;">
+      <input type="text" id="new-project-path" placeholder="專案絕對路徑" style="flex:1; min-width: 200px;">
+      <button id="btn-add-project">加入專案</button>
+    </div>
+  </details>
+  </div>
+</details>
+
+<details class="card" id="section-ultimate">
+  <summary class="top-summary"><h2>Goals · Ultimate</h2><span class="top-summary-meta" id="ultimate-collapsed-summary"></span></summary>
+  <div class="section-body">
+  <div class="grid2">
+    <div>
+      <div class="field-label">Ultimate Goal <span class="unsaved-badge" id="ultimate-goal-unsaved">未儲存</span></div>
+      <textarea id="ultimate-goal" class="autosize"></textarea>
+      <details class="history-details" id="ultimate-goal-history-wrap" style="margin-top:6px;">
+        <summary>變更紀錄</summary>
+        <div class="history-list" id="ultimate-goal-history"></div>
+      </details>
+    </div>
+    <div>
+      <div class="field-label">Ultimate Definition <span class="unsaved-badge" id="ultimate-definition-unsaved">未儲存</span></div>
+      <textarea id="ultimate-definition" class="autosize"></textarea>
+      <details class="history-details" id="ultimate-definition-history-wrap" style="margin-top:6px;">
+        <summary>變更紀錄</summary>
+        <div class="history-list" id="ultimate-definition-history"></div>
+      </details>
+    </div>
+  </div>
+  <div class="row" style="margin-top: 8px;">
+    <button id="btn-save-ultimate" class="primary">儲存</button>
+  </div>
+  </div>
+</details>
+
+<div id="toast-wrap"></div>
+
+<!-- Rapport default: floating widget, fixed bottom-right -->
+<div id="section-rapport">
+  <div class="rapport-widget-header">
+    <span class="rapport-widget-title">預設 Rapport</span>
+    <button class="ghost" id="btn-rapport-minimize" title="縮小">─</button>
+  </div>
+  <div class="work-toggle-row">
+    <div class="work-toggle-label">
+      <span class="work-toggle-state" id="work-toggle-state"></span>
+      <span class="work-toggle-since" id="work-toggle-since"></span>
+    </div>
+    <label class="switch"><input type="checkbox" id="work-toggle"><span class="slider"></span></label>
+  </div>
+  <div class="muted rapport-hint" style="margin-top: -6px; margin-bottom: 8px;">只是你自己的工作紀錄，不影響注入內容</div>
+  <div class="row" style="justify-content: space-between; margin-bottom: 8px;">
+    <span>注入 Rapport</span>
+    <label class="switch"><input type="checkbox" id="rapport-enabled-toggle"><span class="slider"></span></label>
+  </div>
+  <div id="rapport-widget-controls">
+    <div class="row">
+      <select id="preset-select"></select>
+    </div>
+    <div class="dots" id="level-dots" style="margin-top: 8px;"></div>
+    <div id="level-name" class="muted" style="margin-top: 4px;"></div>
+    <div class="muted rapport-hint">新對話與跟隨預設的對話使用</div>
+    <div class="row" style="margin-top: 8px;">
+      <button id="btn-edit-preset">編輯 Preset</button>
+    </div>
+  </div>
+</div>
+<button id="rapport-pill"></button>
+
+<!-- Preset management modal -->
+<div id="preset-modal-backdrop">
+  <div id="preset-modal" role="dialog" aria-modal="true">
+    <h2>Preset 管理</h2>
+    <div class="row">
+      <select id="modal-preset-select"></select>
+    </div>
+    <div class="row" style="margin-top: 10px;">
+      <input type="text" id="new-preset-name" placeholder="新 Preset 名稱">
+      <button id="btn-create-preset">新增 Preset</button>
+    </div>
+    <div class="row" style="margin-top: 10px;">
+      <input type="text" id="rename-preset-name" placeholder="重新命名目前 Preset">
+      <button id="btn-rename-preset">改名</button>
+      <button id="btn-delete-preset" class="danger">刪除目前 Preset</button>
+    </div>
+    <div id="delete-preset-confirm"></div>
+    <div class="row" style="margin-top: 10px;">
+      <button id="btn-add-level">[+] 新增 Level</button>
+      <button id="btn-remove-level">[-] 刪除最後一個 Level</button>
+    </div>
+    <div id="level-edit-list"></div>
+    <div id="modal-discard-confirm"></div>
+    <div class="modal-footer">
+      <button id="btn-modal-cancel">取消</button>
+      <button id="btn-modal-save-close" class="primary">儲存並關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+let state = null;
+
+// -- persistent UI state, independent of re-renders/polling ----------------
+// Keyed by session_id. Mutated directly by event handlers, read by render().
+const uiState = {};
+function getUi(id) {
+  if (!uiState[id]) {
+    uiState[id] = {
+      expanded: false,
+      editingNickname: false,
+      nicknameDraft: null,
+      projectChipEditing: false,
+      projectChipDraft: null,
+      // "進行中" block: null | "edit" | "confirm-success" | "confirm-fail"
+      activePanel: null,
+      objectiveDraft: null,
+      criteriaDraft: null,
+      closeNote: "",
+      recordsOpen: false,
+      timelineOpen: {},
+      parkedDeleteConfirm: null, // oid currently showing the 移除 inline confirm
+      dragOid: null,
+      amendOpen: {}, // key -> bool, is the 更正 inline form open
+      amendChoice: {}, // key -> "achieved"|"failed"|"parked"|"active"
+      amendNote: {}, // key -> draft note text
+      amendReason: {}, // key -> draft reason text
+      workLogOpen: false, // 「檢視」 toggle for the work-log <pre>
+      workLogText: null, // cached fetched text, so 檢視 and 複製 share one fetch
+      workLogCopyState: null, // null | "ok" | "err" -- inline feedback on the copy button
+      workLogMenuOpen: false, // ▾ range menu open/closed
+      workLogRangePicking: false, // 「指定範圍…」 sub-row expanded
+      workLogSelection: { mode: "all" }, // what 檢視 shows + what ▾ points at: "all" | "latest" | "range"
+    };
+  }
+  return uiState[id];
+}
+const sectionOpen = { idle: false, archived: false };
+
+// -- collapse state persisted in localStorage (top-level sections + project rows) --
+function loadCollapseState() {
+  try {
+    return JSON.parse(localStorage.getItem("acc.collapse") || "{}");
+  } catch (e) {
+    return {};
+  }
+}
+function saveCollapseState() {
+  try {
+    localStorage.setItem("acc.collapse", JSON.stringify(collapseState));
+  } catch (e) {
+    // ignore (private browsing / blocked storage)
+  }
+}
+const collapseState = loadCollapseState();
+function isOpen(id, defaultOpen) {
+  return Object.prototype.hasOwnProperty.call(collapseState, id) ? collapseState[id] : !!defaultOpen;
+}
+function wireCollapsible(id, defaultOpen, element) {
+  const el = element || document.getElementById(id);
+  if (!el || el.dataset.collapseWired) return;
+  el.dataset.collapseWired = "1";
+  el.open = isOpen(id, defaultOpen);
+  el.addEventListener("toggle", () => {
+    collapseState[id] = el.open;
+    saveCollapseState();
+  });
+}
+
+// -- rapport widget minimized state, persisted in localStorage --------------
+function loadRapportMinimized() {
+  try {
+    const v = localStorage.getItem("acc.rapport.minimized");
+    if (v === null) {
+      return !!(window.matchMedia && window.matchMedia("(max-width: 640px)").matches);
+    }
+    return v === "1";
+  } catch (e) {
+    return false;
+  }
+}
+function saveRapportMinimized(v) {
+  try {
+    localStorage.setItem("acc.rapport.minimized", v ? "1" : "0");
+  } catch (e) {
+    // ignore
+  }
+}
+let rapportMinimized = loadRapportMinimized();
+
+// -- generic drafts (unsaved edits kept across re-renders) + save feedback --
+const drafts = {};
+function draftValue(id, saved) {
+  return Object.prototype.hasOwnProperty.call(drafts, id) ? drafts[id] : (saved || "");
+}
+function fieldDirty(id, saved) {
+  return Object.prototype.hasOwnProperty.call(drafts, id) && drafts[id] !== (saved || "");
+}
+function wireDraftField(input, id, saved, unsavedBadgeEl) {
+  input.value = draftValue(id, saved);
+  const sync = () => {
+    const dirty = fieldDirty(id, saved);
+    input.classList.toggle("field-dirty", dirty);
+    if (unsavedBadgeEl) unsavedBadgeEl.style.display = dirty ? "inline" : "none";
+  };
+  input.oninput = () => {
+    if (input.value === (saved || "")) delete drafts[id];
+    else drafts[id] = input.value;
+    sync();
+  };
+  sync();
+}
+function clearDraft(id) {
+  delete drafts[id];
+}
+
+const saveFlash = {};
+function applySaveFlash(btn, id) {
+  const flash = saveFlash[id];
+  if (!flash || !btn) return;
+  if (flash.state === "saving") {
+    btn.disabled = true;
+    btn.textContent = "儲存中…";
+  } else if (flash.state === "ok") {
+    btn.textContent = "已儲存 ✓";
+    btn.classList.add("save-ok");
+  } else if (flash.state === "err") {
+    btn.textContent = "儲存失敗";
+    btn.classList.add("save-err");
+    btn.title = flash.message || "";
+  }
+}
+// Saves via a raw POST (bypassing the generic `post()` helper, which
+// swallows errors into a toast) so the button itself can show
+// saving/success/failure instead of -- or in addition to -- a toast.
+async function saveWithFeedback(id, btn, path, body, onSuccess) {
+  const original = btn.dataset.label || btn.textContent;
+  btn.dataset.label = original;
+  saveFlash[id] = { state: "saving" };
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+  btn.classList.remove("save-ok", "save-err");
+  btn.title = "";
+  try {
+    const data = await api("POST", path, body || {});
+    state = data;
+    if (onSuccess) onSuccess();
+    saveFlash[id] = { state: "ok" };
+    setTimeout(() => {
+      if (saveFlash[id] && saveFlash[id].state === "ok") {
+        delete saveFlash[id];
+        render();
+      }
+    }, 2000);
+  } catch (e) {
+    saveFlash[id] = { state: "err", message: e.message };
+    setTimeout(() => {
+      if (saveFlash[id] && saveFlash[id].state === "err") {
+        delete saveFlash[id];
+        render();
+      }
+    }, 4000);
+  }
+  render();
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/"/g, "&quot;");
+}
+
+// -- toast banner (used instead of a native error popup) --------------------
+function showToast(message) {
+  const wrap = $("#toast-wrap");
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = message;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+async function api(method, path, body) {
+  const opts = { method };
+  if (body !== undefined) {
+    opts.headers = { "Content-Type": "application/json" };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "request failed");
+  return data;
+}
+
+async function refresh() {
+  try {
+    state = await api("GET", "/api/state");
+    await refreshOpenWorkLogs();
+    render();
+  } catch (e) {
+    showToast("讀取狀態失敗：" + e.message);
+  }
+}
+
+async function post(path, body) {
+  try {
+    state = await api("POST", path, body || {});
+    render();
+  } catch (e) {
+    showToast(e.message);
+    await refresh();
+  }
+}
+
+function activePreset() {
+  return state.rapport.presets.find(p => p.id === state.rapport.activePreset) || state.rapport.presets[0];
+}
+
+function render() {
+  $("#root-path").textContent = "資料目錄：" + state.root;
+  $("#windows-root").textContent = state.windows_root ? "Windows：" + state.windows_root : "";
+
+  wireCollapsible("section-ultimate", true);
+  wireCollapsible("section-projects", true);
+  wireCollapsible("section-sessions", true);
+
+  renderWorkToggle();
+  renderRapportWidget();
+  renderPresetModal();
+  renderUltimate();
+  renderProjects();
+  renderSessions();
+  applySaveFlash($("#btn-add-project"), "add-project");
+}
+
+// ============================================================================
+// 工作／休息開關 -- 使用者自己的紀錄，不影響注入內容
+// ============================================================================
+
+function sinceLabel(iso) {
+  const p = fmtParts(iso);
+  return p ? `${p.hh}:${p.mi} 起` : "";
+}
+
+function renderWorkToggle() {
+  const work = state.work || { working: true };
+  const toggle = $("#work-toggle");
+  toggle.checked = !!work.working;
+  toggle.onchange = () => post("/api/work", { working: toggle.checked });
+  $("#work-toggle-state").textContent = work.working ? "工作中" : "休息中";
+  $("#work-toggle-since").textContent = sinceLabel(work.since);
+}
+
+function applyRapportMinimizedUi() {
+  $("#section-rapport").classList.toggle("minimized", rapportMinimized);
+  $("#rapport-pill").classList.toggle("visible", rapportMinimized);
+}
+
+function renderRapportWidget() {
+  const enabledToggle = $("#rapport-enabled-toggle");
+  enabledToggle.checked = !!state.rapport.enabled;
+  enabledToggle.onchange = () => post("/api/config/rapport_enabled", { enabled: enabledToggle.checked });
+  $("#rapport-widget-controls").classList.toggle("rapport-dim", !state.rapport.enabled);
+
+  const sel = $("#preset-select");
+  sel.innerHTML = "";
+  state.rapport.presets.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.name;
+    if (p.id === state.rapport.activePreset) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => post("/api/rapport/select", { presetId: sel.value });
+
+  const preset = activePreset();
+  const dots = $("#level-dots");
+  dots.innerHTML = "";
+  if (preset) {
+    preset.levels.forEach(lvl => {
+      const d = document.createElement("div");
+      d.className = "dot" + (lvl.n === state.rapport.level ? " active" : "");
+      d.textContent = lvl.n;
+      d.title = lvl.name;
+      d.onclick = () => post("/api/rapport/level", { level: lvl.n });
+      dots.appendChild(d);
+    });
+    const cur = preset.levels.find(l => l.n === state.rapport.level);
+    $("#level-name").textContent = cur ? cur.name : "";
+  }
+
+  $("#btn-edit-preset").onclick = () => openPresetModal(state.rapport.activePreset);
+
+  const workResting = state.work && !state.work.working;
+  const rapportLabel = !state.rapport.enabled
+    ? "Rapport 關"
+    : (preset ? `Rapport L${state.rapport.level}` : "Rapport");
+  $("#rapport-pill").textContent = workResting ? "休息中" : rapportLabel;
+  applyRapportMinimizedUi();
+}
+
+$("#btn-rapport-minimize").onclick = () => {
+  rapportMinimized = true;
+  saveRapportMinimized(true);
+  applyRapportMinimizedUi();
+};
+$("#rapport-pill").onclick = () => {
+  rapportMinimized = false;
+  saveRapportMinimized(false);
+  applyRapportMinimizedUi();
+};
+
+// ============================================================================
+// Preset management modal
+// ============================================================================
+
+const modalState = { open: false, presetId: null, deleteConfirm: false, confirmDiscard: false };
+
+function modalHasUnsavedDrafts() {
+  return Object.keys(drafts).some(k => k.indexOf("modal-level:") === 0);
+}
+
+function onModalKeydown(e) {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    requestCancelModal();
+  }
+}
+
+function openPresetModal(presetId) {
+  modalState.open = true;
+  modalState.presetId = presetId || (activePreset() && activePreset().id);
+  modalState.deleteConfirm = false;
+  modalState.confirmDiscard = false;
+  document.addEventListener("keydown", onModalKeydown);
+  render();
+}
+
+function closePresetModalForce() {
+  Object.keys(drafts).forEach(k => {
+    if (k.indexOf("modal-level:") === 0) delete drafts[k];
+  });
+  modalState.open = false;
+  modalState.deleteConfirm = false;
+  modalState.confirmDiscard = false;
+  document.removeEventListener("keydown", onModalKeydown);
+  render();
+}
+
+function requestCancelModal() {
+  if (modalHasUnsavedDrafts()) {
+    modalState.confirmDiscard = true;
+    render();
+  } else {
+    closePresetModalForce();
+  }
+}
+
+async function savePresetModalAndClose() {
+  const btn = $("#btn-modal-save-close");
+  const dirtyKeys = Object.keys(drafts).filter(k => k.indexOf("modal-level:") === 0);
+  if (!dirtyKeys.length) {
+    closePresetModalForce();
+    return;
+  }
+  btn.disabled = true;
+  btn.classList.remove("save-ok", "save-err");
+  btn.textContent = "儲存中…";
+  const groups = {};
+  dirtyKeys.forEach(k => {
+    const parts = k.split(":"); // ["modal-level", presetId, n, field]
+    const key = parts[1] + ":" + parts[2];
+    groups[key] = groups[key] || { presetId: parts[1], n: parts[2] };
+    groups[key][parts[3]] = true;
+  });
+  let allOk = true;
+  for (const g of Object.values(groups)) {
+    const nameId = `modal-level:${g.presetId}:${g.n}:name`;
+    const promptId = `modal-level:${g.presetId}:${g.n}:prompt`;
+    const presetObj = state.rapport.presets.find(p => p.id === g.presetId);
+    const lvl = presetObj && presetObj.levels.find(l => String(l.n) === g.n);
+    const name = Object.prototype.hasOwnProperty.call(drafts, nameId) ? drafts[nameId] : (lvl ? lvl.name : "");
+    const prompt = Object.prototype.hasOwnProperty.call(drafts, promptId) ? drafts[promptId] : (lvl ? lvl.prompt : "");
+    try {
+      await api("POST", "/api/rapport/level/rename", { presetId: g.presetId, n: Number(g.n), name });
+      state = await api("POST", "/api/rapport/level/prompt", { presetId: g.presetId, n: Number(g.n), prompt });
+      delete drafts[nameId];
+      delete drafts[promptId];
+    } catch (e) {
+      allOk = false;
+      showToast("儲存失敗：" + e.message);
+    }
+  }
+  if (allOk) {
+    btn.textContent = "已儲存 ✓";
+    btn.classList.add("save-ok");
+    setTimeout(() => closePresetModalForce(), 350);
+  } else {
+    btn.disabled = false;
+    btn.textContent = "部分失敗，請重試";
+    btn.classList.add("save-err");
+    render();
+  }
+}
+
+function renderPresetModal() {
+  const backdrop = $("#preset-modal-backdrop");
+  if (!modalState.open) {
+    backdrop.classList.remove("open");
+    return;
+  }
+  backdrop.classList.add("open");
+
+  // Resolve the preset being edited; fall back if it was deleted elsewhere.
+  let preset = state.rapport.presets.find(p => p.id === modalState.presetId);
+  if (!preset) {
+    preset = activePreset();
+    modalState.presetId = preset ? preset.id : null;
+  }
+
+  const sel = $("#modal-preset-select");
+  sel.innerHTML = "";
+  state.rapport.presets.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.name;
+    if (preset && p.id === preset.id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => {
+    modalState.presetId = sel.value;
+    modalState.deleteConfirm = false;
+    render();
+  };
+
+  $("#rename-preset-name").value = preset ? preset.name : "";
+
+  const delConfirm = $("#delete-preset-confirm");
+  delConfirm.innerHTML = "";
+  if (modalState.deleteConfirm && preset) {
+    const div = document.createElement("div");
+    div.className = "inline-confirm";
+    div.innerHTML = `
+      <div>確定刪除 Preset「${escapeHtml(preset.name)}」？</div>
+      <div class="row" style="margin-top:6px;">
+        <button class="danger btn-confirm-delete">確認刪除</button>
+        <button class="btn-cancel-delete">取消</button>
+      </div>
+    `;
+    div.querySelector(".btn-confirm-delete").onclick = async () => {
+      modalState.deleteConfirm = false;
+      try {
+        state = await api("POST", "/api/rapport/preset/delete", { presetId: preset.id });
+        modalState.presetId = state.rapport.activePreset;
+      } catch (e) {
+        showToast(e.message);
+      }
+      render();
+    };
+    div.querySelector(".btn-cancel-delete").onclick = () => {
+      modalState.deleteConfirm = false;
+      render();
+    };
+    delConfirm.appendChild(div);
+  }
+
+  const discardWrap = $("#modal-discard-confirm");
+  discardWrap.innerHTML = "";
+  if (modalState.confirmDiscard) {
+    const div = document.createElement("div");
+    div.className = "inline-confirm";
+    div.innerHTML = `
+      <div>有未儲存的修改，確定放棄？</div>
+      <div class="row" style="margin-top:6px;">
+        <button class="danger btn-discard-confirm">放棄修改</button>
+        <button class="btn-discard-cancel">回去繼續編輯</button>
+      </div>
+    `;
+    div.querySelector(".btn-discard-confirm").onclick = () => closePresetModalForce();
+    div.querySelector(".btn-discard-cancel").onclick = () => {
+      modalState.confirmDiscard = false;
+      render();
+    };
+    discardWrap.appendChild(div);
+  }
+
+  const editList = $("#level-edit-list");
+  editList.innerHTML = "";
+  if (preset) {
+    preset.levels.forEach(lvl => {
+      const div = document.createElement("div");
+      div.className = "level-edit-row";
+      const nameId = `modal-level:${preset.id}:${lvl.n}:name`;
+      const promptId = `modal-level:${preset.id}:${lvl.n}:prompt`;
+      const unsavedId = `modal-level-unsaved-${preset.id}-${lvl.n}`;
+      div.innerHTML = `
+        <div class="row">
+          <strong>${lvl.n}</strong>
+          <input type="text" class="lvl-name" style="flex:1; min-width:120px;">
+          <span class="unsaved-badge" id="${unsavedId}">未儲存</span>
+          <button class="btn-open-prompt">用 Windows 開啟</button>
+          <button class="btn-save-level primary">儲存</button>
+        </div>
+        <textarea class="lvl-prompt"></textarea>
+      `;
+      const nameInput = div.querySelector(".lvl-name");
+      const promptInput = div.querySelector(".lvl-prompt");
+      const unsavedBadge = div.querySelector(`#${CSS.escape(unsavedId)}`);
+      const syncDirty = () => {
+        const dirty = fieldDirty(nameId, lvl.name) || fieldDirty(promptId, lvl.prompt);
+        if (unsavedBadge) unsavedBadge.style.display = dirty ? "inline" : "none";
+      };
+      wireDraftField(nameInput, nameId, lvl.name, null);
+      wireDraftField(promptInput, promptId, lvl.prompt, null);
+      const origNameInput = nameInput.oninput;
+      nameInput.oninput = () => { origNameInput(); syncDirty(); };
+      const origPromptInput = promptInput.oninput;
+      promptInput.oninput = () => { origPromptInput(); syncDirty(); };
+      syncDirty();
+
+      const saveBtn = div.querySelector(".btn-save-level");
+      const flashId = `level:${preset.id}:${lvl.n}`;
+      saveBtn.onclick = async () => {
+        const name = nameInput.value;
+        const prompt = promptInput.value;
+        saveFlash[flashId] = { state: "saving" };
+        saveBtn.disabled = true;
+        saveBtn.textContent = "儲存中…";
+        saveBtn.classList.remove("save-ok", "save-err");
+        try {
+          await api("POST", "/api/rapport/level/rename", { presetId: preset.id, n: lvl.n, name });
+          state = await api("POST", "/api/rapport/level/prompt", { presetId: preset.id, n: lvl.n, prompt });
+          delete drafts[nameId];
+          delete drafts[promptId];
+          saveFlash[flashId] = { state: "ok" };
+          setTimeout(() => {
+            if (saveFlash[flashId] && saveFlash[flashId].state === "ok") {
+              delete saveFlash[flashId];
+              render();
+            }
+          }, 2000);
+        } catch (e) {
+          saveFlash[flashId] = { state: "err", message: e.message };
+          setTimeout(() => {
+            if (saveFlash[flashId] && saveFlash[flashId].state === "err") {
+              delete saveFlash[flashId];
+              render();
+            }
+          }, 4000);
+        }
+        render();
+      };
+      applySaveFlash(saveBtn, flashId);
+      div.querySelector(".btn-open-prompt").onclick = () => {
+        post("/api/open", { path: `rapport/presets/${preset.id}/${lvl.n}.md` });
+      };
+      editList.appendChild(div);
+    });
+  }
+}
+
+$("#btn-modal-cancel").onclick = () => requestCancelModal();
+$("#btn-modal-save-close").onclick = () => savePresetModalAndClose();
+$("#preset-modal-backdrop").addEventListener("click", (e) => {
+  if (e.target.id === "preset-modal-backdrop") requestCancelModal();
+});
+$("#preset-modal").addEventListener("click", (e) => e.stopPropagation());
+
+function historyActorLabel(entry) {
+  if (entry.seed) return "初始內容（紀錄開始前）";
+  if (entry.type === "external_edit") return "外部修改";
+  if (entry.via === "suggestion") return "Agent 建議採用";
+  if (entry.actor === "agent") return "Agent";
+  if (entry.actor === "hook") return "系統";
+  return "使用者";
+}
+
+function renderHistoryList(el, entries) {
+  el.innerHTML = "";
+  if (!entries || !entries.length) {
+    el.innerHTML = `<div class="muted">目前沒有變更紀錄。</div>`;
+    return;
+  }
+  entries.forEach(h => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    const before = h.seed ? null : (h.before || "（空）");
+    const after = h.after || "（空）";
+    div.innerHTML = `
+      <div class="hist-meta">${escapeHtml(historyActorLabel(h))} · ${escapeHtml(relativeTime(h.at))}</div>
+      ${before !== null ? `<div class="hist-arrow"><span class="muted">${escapeHtml(before)}</span> → <span>${escapeHtml(after)}</span></div>` : `<div class="hist-arrow">${escapeHtml(after)}</div>`}
+    `;
+    el.appendChild(div);
+  });
+}
+
+// 讓長文欄位的高度跟著內容走；收合中的欄位量不到高度，展開時再量一次。
+function fitHeight(el) {
+  if (!el.offsetParent) return;
+  el.style.height = "auto";
+  el.style.height = (el.scrollHeight + 2) + "px";
+}
+function wireAutosize(el) {
+  if (!el.dataset.autosizeWired) {
+    el.dataset.autosizeWired = "1";
+    el.addEventListener("input", () => fitHeight(el));
+    const section = el.closest("details");
+    if (section) section.addEventListener("toggle", () => fitHeight(el));
+  }
+  fitHeight(el);
+}
+
+function renderUltimate() {
+  const goalEl = $("#ultimate-goal");
+  const defEl = $("#ultimate-definition");
+  wireDraftField(goalEl, "ultimate.goal", state.goals.ultimate_goal, $("#ultimate-goal-unsaved"));
+  wireDraftField(defEl, "ultimate.definition", state.goals.ultimate_definition, $("#ultimate-definition-unsaved"));
+  wireAutosize(goalEl);
+  wireAutosize(defEl);
+
+  const btn = $("#btn-save-ultimate");
+  applySaveFlash(btn, "ultimate");
+
+  wireCollapsible("ultimate-goal-history-wrap", false);
+  wireCollapsible("ultimate-definition-history-wrap", false);
+  renderHistoryList($("#ultimate-goal-history"), state.goals.ultimate_goal_history);
+  renderHistoryList($("#ultimate-definition-history"), state.goals.ultimate_definition_history);
+
+  const summaryEl = $("#ultimate-collapsed-summary");
+  if (summaryEl) {
+    summaryEl.textContent = state.goals.ultimate_goal ? "已設定" : "尚未設定";
+  }
+}
+
+function projectAnchorId(key) {
+  return "project-" + key;
+}
+
+function renderProjects() {
+  const list = $("#project-list");
+  list.innerHTML = "";
+  const projects = state.goals.projects || [];
+  if (!projects.length) {
+    list.innerHTML = `<div class="muted">目前沒有任何專案（有對話發生後，或手動加入路徑後會出現在這裡）。</div>`;
+    return;
+  }
+  let totalPending = 0;
+  projects.forEach(p => {
+    const pending = (p.suggestions || []).filter(s => s.status === "pending");
+    totalPending += pending.length;
+
+    const details = document.createElement("details");
+    details.className = "project-item";
+    details.id = projectAnchorId(p.key);
+    wireCollapsible(projectAnchorId(p.key), false, details);
+
+    const countLabel = p.session_count === 1 ? "1 個對話" : `${p.session_count} 個對話`;
+    const summary = document.createElement("summary");
+    summary.style.cursor = "pointer";
+    summary.innerHTML = `
+      <div class="row" style="justify-content: space-between; align-items: flex-start;">
+        <div>
+          <span class="proj-title">${escapeHtml(basename(p.path))}</span>
+          <div class="proj-path mono">${escapeHtml(p.path)}</div>
+        </div>
+        <div class="row" style="gap:4px;">
+          ${pending.length ? `<span class="badge accent">${pending.length} 則建議</span>` : ""}
+          <span class="badge">${escapeHtml(countLabel)}</span>
+        </div>
+      </div>
+    `;
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.style.marginTop = "8px";
+
+    const draftId = `project:${p.key}.super`;
+    const unsavedId = `project-unsaved-${p.key}`;
+    body.innerHTML = `
+      <div class="field-label">Super Objective <span class="unsaved-badge" id="${unsavedId}">未儲存</span></div>
+      <textarea class="proj-super"></textarea>
+      <div class="row"><button class="primary btn-save-proj">儲存</button></div>
+      <div class="suggestions-wrap"></div>
+      <div style="margin-top:8px;">
+        <div class="field-label">變更紀錄</div>
+        <div class="history-list proj-history"></div>
+      </div>
+    `;
+    const textarea = body.querySelector(".proj-super");
+    wireDraftField(textarea, draftId, p.super_objective, body.querySelector(`#${unsavedId}`));
+
+    const saveBtn = body.querySelector(".btn-save-proj");
+    applySaveFlash(saveBtn, draftId);
+    saveBtn.onclick = () => {
+      saveWithFeedback(draftId, saveBtn, "/api/goals/project",
+        { path: p.path, super_objective: textarea.value },
+        () => clearDraft(draftId));
+    };
+
+    const sugWrap = body.querySelector(".suggestions-wrap");
+    if (pending.length) {
+      pending.forEach(s => {
+        const sd = document.createElement("div");
+        sd.className = "suggestion-item";
+        sd.innerHTML = `
+          <div class="sug-text">${escapeHtml(s.suggestion)}</div>
+          <div class="sug-reason">理由：${escapeHtml(s.reason || "（無）")}</div>
+          <div class="sug-meta">來自對話 ${escapeHtml((s.session_id || "").slice(0, 8))} · ${escapeHtml(relativeTime(s.at))}</div>
+          <div class="row" style="margin-top:6px;">
+            <button class="primary btn-sug-accept">採用</button>
+            <button class="btn-sug-reject">不採用</button>
+          </div>
+        `;
+        sd.querySelector(".btn-sug-accept").onclick = () =>
+          post("/api/goals/project/suggestion/accept", { path: p.path, id: s.id });
+        sd.querySelector(".btn-sug-reject").onclick = () =>
+          post("/api/goals/project/suggestion/reject", { path: p.path, id: s.id });
+        sugWrap.appendChild(sd);
+      });
+    }
+
+    renderHistoryList(body.querySelector(".proj-history"), p.history);
+
+    details.appendChild(body);
+    list.appendChild(details);
+  });
+
+  const summaryEl = $("#projects-collapsed-summary");
+  if (summaryEl) {
+    const countLabel = `${projects.length} 個專案`;
+    summaryEl.textContent = totalPending ? `${countLabel} · ${totalPending} 則待決定建議` : countLabel;
+  }
+}
+
+function projectByPath(path) {
+  return (state.goals.projects || []).find(p => p.path === path);
+}
+
+function scrollToProject(path) {
+  const p = projectByPath(path);
+  if (!p) return;
+  const section = document.getElementById("section-projects");
+  if (section && !section.open) { section.open = true; collapseState["section-projects"] = true; saveCollapseState(); }
+  const el = document.getElementById(projectAnchorId(p.key));
+  if (!el) return;
+  if (!el.open) { el.open = true; collapseState[projectAnchorId(p.key)] = true; saveCollapseState(); }
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("highlight");
+  setTimeout(() => el.classList.remove("highlight"), 1500);
+}
+
+// ============================================================================
+// Sessions
+// ============================================================================
+
+function hashHue(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h % 360;
+}
+function stripeColor(sessionId) {
+  return `hsl(${hashHue(sessionId || "")}, var(--stripe-s), var(--stripe-l))`;
+}
+
+function basename(p) {
+  if (!p) return "（未知專案）";
+  const parts = String(p).replace(/\\/g, "/").split("/").filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : p;
+}
+
+function sessionTitle(s) {
+  if (s.nickname) return s.nickname;
+  const proj = basename(s.project);
+  const fp = (s.first_prompt || "").slice(0, 30);
+  return fp ? `${proj} · ${fp}` : proj;
+}
+
+function agentLabel(a) {
+  if (a === "claude") return "Claude";
+  if (a === "codex") return "Codex";
+  return a || "?";
+}
+
+function relativeTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "剛剛";
+  if (mins < 60) return `${mins} 分鐘前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小時前`;
+  const days = Math.floor(hours / 24);
+  return `${days} 天前`;
+}
+
+function fmtParts(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return { mm, dd, hh, mi, dayKey: `${mm}-${dd}` };
+}
+
+function timeRange(started, closed) {
+  const s = fmtParts(started);
+  const startStr = s ? `${s.mm}-${s.dd} ${s.hh}:${s.mi}` : "？";
+  if (!closed) return `${startStr} →`;
+  const e = fmtParts(closed);
+  if (!e) return startStr;
+  const endStr = (s && s.dayKey === e.dayKey) ? `${e.hh}:${e.mi}` : `${e.mm}-${e.dd} ${e.hh}:${e.mi}`;
+  return `${startStr} → ${endStr}`;
+}
+
+// 某個 Objective 期間每次送出時的檔位，只留有變化的點（純文字，呼叫端負責跳脫）。
+// 有 oid 就看那個 Objective 自己的送出；舊資料沒有 oid，改用時間範圍。
+function rapportChangeList(session, oid, started, closedOrNull) {
+  const turns = session.turns || [];
+  const startTime = started ? new Date(started) : null;
+  const endTime = closedOrNull ? new Date(closedOrNull) : new Date();
+  const hasOid = oid && turns.some(t => t.oid === oid);
+  let before = null;
+  const within = [];
+  for (const t of turns) {
+    const at = new Date(t.at);
+    if (isNaN(at)) continue;
+    if (startTime && !isNaN(startTime) && at < startTime) { before = t; continue; }
+    if (at > endTime) continue;
+    // 舊紀錄沒有 oid 欄位，只能靠時間範圍；新紀錄的 null 代表當時沒有進行中的 Objective。
+    if (hasOid && ("oid" in t) && t.oid !== oid) continue;
+    within.push(t);
+  }
+  const points = before ? [before, ...within] : within;
+  const out = [];
+  let prev = null;
+  for (const t of points) {
+    const sent = t.sent !== false; // legacy entries without `sent` counted as sent
+    const key = `${t.preset}|${t.level}|${sent}`;
+    if (key === prev) continue;
+    const p = fmtParts(t.at);
+    const presetObj = state.rapport.presets.find(x => x.id === t.preset);
+    const presetName = presetObj ? presetObj.name : t.preset;
+    const time = p ? `${p.mm}-${p.dd} ${p.hh}:${p.mi}` : "？";
+    const notSent = sent ? "" : "（未送出）";
+    out.push(`${time}　${presetName} L${t.level} ${t.name || ""}${prev === null && t === before ? "（開始前）" : ""}${notSent}`);
+    prev = key;
+  }
+  return out;
+}
+
+function rapportChangesHtml(list) {
+  if (!list.length) return `<div class="muted">沒有紀錄（這個功能加入之前的目標）</div>`;
+  return `<ul class="rapport-changes">${list.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`;
+}
+
+function closedByLabel(v) {
+  if (v === "agent") return "Agent";
+  if (v === "user") return "使用者";
+  return "未知";
+}
+
+function statusLabel(status) {
+  if (status === "achieved") return "達成";
+  if (status === "failed") return "失敗";
+  if (status === "dropped") return "移除";
+  return status || "";
+}
+
+function statusClass(status) {
+  if (status === "achieved") return "active";
+  if (status === "failed") return "danger";
+  if (status === "dropped") return "";
+  return "";
+}
+
+function amendLabel(obj) {
+  const map = { achieved: "成功", failed: "失敗", parked: "擱置", active: "進行中", dropped: "移除" };
+  const s = (obj && obj.status) || "";
+  return map[s] || s || "（未知）";
+}
+
+// Inline "更正" control shared by timeline entries (closed) and parked
+// rows. `targetId` is the oid/P<n>/H<n> id `amend` expects, or null when
+// this entry can't be amended (no oid and beyond the last-10 window the
+// CLI numbers) -- in that case the control renders nothing.
+function renderAmendControl(s, ui, key, targetId, choices) {
+  const wrap = document.createElement("div");
+  if (!targetId) return wrap;
+  const open = !!ui.amendOpen[key];
+  const btn = document.createElement("button");
+  btn.className = "ghost";
+  btn.textContent = "更正";
+  btn.onclick = () => {
+    ui.amendOpen[key] = !ui.amendOpen[key];
+    if (ui.amendOpen[key] && !ui.amendChoice[key]) ui.amendChoice[key] = choices[0].val;
+    renderSessions();
+  };
+  wrap.appendChild(btn);
+  if (open) {
+    const box = document.createElement("div");
+    box.className = "inline-confirm";
+    const segHtml = choices.map(c => {
+      const selected = ui.amendChoice[key] === c.val;
+      return `<button type="button" class="amend-choice-btn${selected ? " selected" : ""}" data-val="${c.val}">${c.label}</button>`;
+    }).join("");
+    box.innerHTML = `
+      <div class="segmented">${segHtml}</div>
+      <input type="text" class="amend-note" placeholder="備註（可留空，留空則保留原本備註）" style="width:100%;margin-top:6px;">
+      <input type="text" class="amend-reason" placeholder="理由" style="width:100%;margin-top:6px;">
+      <div class="row" style="margin-top:6px;">
+        <button class="primary btn-amend-confirm">確認</button>
+        <button class="btn-amend-cancel">取消</button>
+      </div>
+    `;
+    box.querySelectorAll(".amend-choice-btn").forEach(b => {
+      b.onclick = () => { ui.amendChoice[key] = b.dataset.val; renderSessions(); };
+    });
+    const noteInput = box.querySelector(".amend-note");
+    noteInput.value = ui.amendNote[key] || "";
+    noteInput.oninput = () => { ui.amendNote[key] = noteInput.value; };
+    const reasonInput = box.querySelector(".amend-reason");
+    reasonInput.value = ui.amendReason[key] || "";
+    reasonInput.oninput = () => { ui.amendReason[key] = reasonInput.value; };
+    box.querySelector(".btn-amend-confirm").onclick = () => {
+      const body = {
+        sessionId: s.session_id,
+        id: targetId,
+        to: ui.amendChoice[key] || choices[0].val,
+        reason: ui.amendReason[key] || "",
+      };
+      const noteVal = ui.amendNote[key];
+      if (noteVal) body.note = noteVal;
+      ui.amendOpen[key] = false;
+      ui.amendNote[key] = "";
+      ui.amendReason[key] = "";
+      post("/api/goals/session/amend", body);
+    };
+    box.querySelector(".btn-amend-cancel").onclick = () => {
+      ui.amendOpen[key] = false;
+      renderSessions();
+    };
+    wrap.appendChild(box);
+  }
+  return wrap;
+}
+
+function renderSessions() {
+  const wrap = $("#session-sections");
+  wrap.innerHTML = "";
+
+  const active = state.goals.sessions || [];
+  const idle = state.goals.idle_sessions || [];
+  const archived = state.goals.archived || [];
+
+  if (!active.length && !idle.length && !archived.length) {
+    wrap.innerHTML = `<div class="muted">目前沒有任何對話。</div>`;
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "col";
+  active.forEach(s => list.appendChild(renderSessionCard(s)));
+  wrap.appendChild(list);
+
+  if (idle.length) {
+    wrap.appendChild(renderCollapsedSection(
+      "idle", `閒置（超過 ${state.goals.idle_hours} 小時沒有新訊息）`, idle.length,
+      idle.map(renderSessionCard)
+    ));
+  }
+
+  if (archived.length) {
+    wrap.appendChild(renderCollapsedSection(
+      "archived", "已封存", archived.length,
+      archived.map(renderArchivedCard)
+    ));
+  }
+
+  const summaryEl = $("#sessions-collapsed-summary");
+  if (summaryEl) {
+    summaryEl.textContent = `${active.length} 個進行中 · ${idle.length} 個閒置 · ${archived.length} 個已封存`;
+  }
+}
+
+function renderCollapsedSection(key, title, count, children) {
+  const details = document.createElement("details");
+  details.open = isOpen(key, false);
+  details.addEventListener("toggle", (e) => { collapseState[key] = e.target.open; saveCollapseState(); });
+  const summary = document.createElement("summary");
+  summary.textContent = `${title}（${count}）`;
+  details.appendChild(summary);
+  const inner = document.createElement("div");
+  inner.className = "col";
+  inner.style.marginTop = "8px";
+  children.forEach(c => inner.appendChild(c));
+  details.appendChild(inner);
+  return details;
+}
+
+function renderArchivedCard(s) {
+  const div = document.createElement("div");
+  div.className = "session-card";
+  div.dataset.sessionId = s.session_id;
+  div.innerHTML = `
+    <div class="stripe" style="background:${stripeColor(s.session_id)}"></div>
+    <div class="session-body">
+      <div class="card-header" style="cursor:default;">
+        <div class="card-title-row">
+          <span class="card-title">${escapeHtml(sessionTitle(s))}</span>
+          <span class="badge">${escapeHtml(agentLabel(s.agent))}</span>
+          <span class="short-id mono" title="${escapeAttr(s.session_id)}">${escapeHtml((s.session_id || "").slice(0, 8))}</span>
+        </div>
+        <button class="btn-unarchive">取消封存</button>
+      </div>
+      <div class="card-oneliner">封存於：${escapeHtml(relativeTime(s.archived_at))}</div>
+    </div>
+  `;
+  div.querySelector(".short-id").onclick = () => copyToClipboard(s.session_id);
+  div.querySelector(".btn-unarchive").onclick = () => post("/api/goals/session/unarchive", { sessionId: s.session_id });
+  return div;
+}
+
+function copyToClipboard(text) {
+  try {
+    navigator.clipboard.writeText(text).then(
+      () => showToast("已複製：" + text),
+      () => showToast(text)
+    );
+  } catch (e) {
+    showToast(text);
+  }
+}
+
+// Copies arbitrary (possibly long) text, falling back to the legacy
+// execCommand path when the async Clipboard API is unavailable or fails
+// (e.g. plain http in some browsers). Throws if neither works.
+async function copyTextRobust(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (e) {
+      // fall through to the textarea/execCommand fallback below
+    }
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  ta.style.top = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch (e) {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  if (!ok) throw new Error("copy failed");
+}
+
+function buildTimelineEntries(s) {
+  // Closed objectives only -- the in-progress Objective now has its own
+  // "進行中" block (renderActiveBlock), not a timeline card.
+  const entries = [];
+  const history = s.history || [];
+  let newestPosition = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    entries.push({
+      key: "h" + i,
+      historyIndex: i,
+      oid: h.oid || null,
+      // `amend` only numbers the last 10 (newest first) as H1..H10 --
+      // matches GoalsModule._amend_candidates.
+      amendId: h.oid || (newestPosition < 10 ? `H${newestPosition + 1}` : null),
+      status: statusLabel(h.status),
+      statusClass: statusClass(h.status),
+      objective: h.objective,
+      success_criteria: h.success_criteria,
+      note: h.note,
+      started: h.started || "",
+      closed: h.closed || "",
+      closed_by: h.closed_by,
+      edits: h.edits || [],
+      segments: h.segments || [],
+      amendments: h.amendments || [],
+    });
+    newestPosition++;
+  }
+  return entries;
+}
+
+function hhmm(iso) {
+  const p = fmtParts(iso);
+  return p ? `${p.hh}:${p.mi}` : "";
+}
+
+// 進行/擱置 segments now come straight from the API (event-derived): each {type, start, end}, end===null
+// means still open ("→ 現在"). 只有一段「進行」就是還沒被擱置過。
+function activeSegmentsText(s) {
+  if (s.status !== "active") return "";
+  const segs = s.segments || [];
+  if (segs.length <= 1) return "一直進行中，沒有被擱置過";
+  return escapeHtml(formatSegments(segs) || "");
+}
+
+function formatSegments(segments) {
+  if (!segments || !segments.length) return null;
+  return segments.map(seg => {
+    const start = hhmm(seg.start);
+    return seg.end ? `${start}–${hhmm(seg.end)} ${seg.type}` : `${start} → 現在 ${seg.type}`;
+  }).join(" · ");
+}
+
+function renderTimelineItem(s, entry, ui) {
+  const div = document.createElement("div");
+  div.className = "tl-item";
+  const isOpen = !!ui.timelineOpen[entry.key];
+  const head = document.createElement("div");
+  head.className = "tl-head";
+  const editCount = (entry.edits || []).length;
+  const amendCount = (entry.amendments || []).length;
+  head.innerHTML = `
+    <div class="tl-head-left">
+      <span class="badge ${entry.statusClass}">${escapeHtml(entry.status)}</span>
+      <span class="muted">結案者：${closedByLabel(entry.closed_by)}</span>
+      <span class="tl-range">${escapeHtml(timeRange(entry.started, entry.closed))}</span>
+      ${editCount ? `<span class="badge">修改 ${editCount} 次</span>` : ""}
+      ${amendCount ? `<span class="badge accent">已更正</span>` : ""}
+    </div>
+    <span class="muted">${isOpen ? "▾" : "▸"}</span>
+  `;
+  head.style.cursor = "pointer";
+  head.onclick = () => {
+    ui.timelineOpen[entry.key] = !ui.timelineOpen[entry.key];
+    renderSessions();
+  };
+  div.appendChild(head);
+
+  const obj = document.createElement("div");
+  obj.className = "tl-obj";
+  obj.textContent = entry.objective || "（尚未設定）";
+  div.appendChild(obj);
+
+  if (isOpen) {
+    const detail = document.createElement("div");
+    detail.className = "tl-detail";
+    const segs = entry.segments || [];
+    const segLine = segs.length <= 1 ? null : formatSegments(segs);
+    const rc = rapportChangeList(s, entry.oid, entry.started, entry.closed);
+    const edits = entry.edits || [];
+    const editsHtml = edits.length
+      ? `<div style="margin-top:6px;"><strong>修改紀錄</strong></div>
+         <div class="edits-list">${
+           [...edits].reverse().map(ed => `
+             <div class="edit-item">
+               <span class="muted">${escapeHtml(closedByLabel(ed.actor))} · ${escapeHtml(relativeTime(ed.at))}</span><br>
+               ${(ed.reason || ed.note) ? `<span>理由：${escapeHtml(ed.reason || ed.note)}</span><br>` : ""}
+               <span class="muted">${escapeHtml((ed.before && ed.before.objective) || "（空）")}</span>
+               → <span>${escapeHtml((ed.after && ed.after.objective) || "（空）")}</span>
+               ${((ed.before && ed.before.success_criteria) !== (ed.after && ed.after.success_criteria)) ? `<br><span class="muted">標準：${escapeHtml((ed.before && ed.before.success_criteria) || "（空）")}</span>
+               → <span>${escapeHtml((ed.after && ed.after.success_criteria) || "（空）")}</span>` : ""}
+             </div>
+           `).join("")
+         }</div>`
+      : "";
+    const amendments = entry.amendments || [];
+    const amendHtml = amendments.length
+      ? `<div style="margin-top:6px;"><strong>更正紀錄</strong></div>
+         <div class="edits-list">${
+           [...amendments].reverse().map(a => `
+             <div class="edit-item">
+               <span class="muted">${escapeHtml(closedByLabel(a.actor))} · ${escapeHtml(relativeTime(a.at))}</span><br>
+               ${a.reason ? `<span>理由：${escapeHtml(a.reason)}</span><br>` : ""}
+               <span class="muted">${escapeHtml(amendLabel(a.before))}</span>
+               → <span>${escapeHtml(amendLabel(a.after))}</span>
+             </div>
+           `).join("")
+         }</div>`
+      : "";
+    detail.innerHTML = `
+      <div><strong>Rapport 變化</strong></div>
+      ${rapportChangesHtml(rc)}
+      <div style="margin-top:6px;"><strong>進行 / 擱置</strong></div>
+      <div class="muted segments-line">${segLine ? escapeHtml(segLine) : "沒有被擱置過"}</div>
+      <div style="margin-top:6px;"><strong>Success Criteria</strong></div>
+      <div class="muted">${escapeHtml(entry.success_criteria || "（尚未設定）")}</div>
+      ${entry.note ? `<div style="margin-top:6px;"><strong>備註</strong></div><div class="muted">${escapeHtml(entry.note)}</div>` : ""}
+      ${editsHtml}
+      ${amendHtml}
+    `;
+    div.appendChild(detail);
+
+    const actions = document.createElement("div");
+    actions.className = "row";
+    actions.style.marginTop = "8px";
+    const btn = document.createElement("button");
+    btn.textContent = "重新開啟";
+    btn.disabled = s.status !== "unset";
+    btn.title = s.status !== "unset" ? "目前有進行中的 Objective，先結案才能重新開啟" : "";
+    btn.onclick = () => post("/api/goals/session/reopen", { sessionId: s.session_id, index: entry.historyIndex });
+    actions.appendChild(btn);
+    actions.appendChild(renderAmendControl(s, ui, "amend:" + entry.key, entry.amendId, [
+      { label: "成功", val: "achieved" },
+      { label: "失敗", val: "failed" },
+      { label: "擱置", val: "parked" },
+      { label: "進行中", val: "active" },
+    ]));
+    div.appendChild(actions);
+  }
+
+  return div;
+}
+
+function renderSessionRapport(s) {
+  const eff = s.rapport_effective || {};
+  const preset = state.rapport.presets.find(p => p.id === eff.preset) || state.rapport.presets[0];
+  const following = !s.rapport;
+  const badge = following
+    ? `<span class="badge">跟隨預設</span>`
+    : `<span class="badge active">個別設定</span>`;
+  const dotsHtml = preset
+    ? preset.levels.map(lvl => `<div class="dot${lvl.n === eff.level ? " active" : ""}" data-n="${lvl.n}" title="${escapeAttr(lvl.name)}">${lvl.n}</div>`).join("")
+    : "";
+  const optionsHtml = state.rapport.presets.map(p =>
+    `<option value="${escapeAttr(p.id)}"${p.id === eff.preset ? " selected" : ""}>${escapeHtml(p.name)}</option>`
+  ).join("");
+  const enabledVal = (s.rapport_enabled === undefined) ? null : s.rapport_enabled;
+  const segOpts = [
+    { label: "跟隨全域", val: null },
+    { label: "開", val: true },
+    { label: "關", val: false },
+  ];
+  const segHtml = segOpts.map(o => {
+    const selected = o.val === enabledVal;
+    return `<button type="button" class="s-rapport-enabled-btn${selected ? " selected" : ""}" data-val="${o.val === null ? "" : o.val}">${o.label}</button>`;
+  }).join("");
+  const effOff = s.rapport_enabled_effective === false;
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <div class="field-label">注入 Rapport</div>
+    <div class="segmented s-rapport-enabled-seg">${segHtml}</div>
+    <div class="field-label" style="margin-top:8px;">Rapport ${badge}</div>
+    <div class="row${effOff ? " rapport-dim" : ""}">
+      <select class="s-rapport-preset">${optionsHtml}</select>
+      <span class="muted s-rapport-level-name">${escapeHtml(eff.name || "")}</span>
+      ${following ? "" : `<button class="btn-follow-default">改回跟隨預設</button>`}
+      <button class="btn-edit-session-preset">編輯 Preset</button>
+    </div>
+    <div class="dots s-rapport-dots${effOff ? " rapport-dim" : ""}" style="margin-top:4px;">${dotsHtml}</div>
+  `;
+  const setOverride = (preset, level) => post("/api/goals/session/rapport", { sessionId: s.session_id, preset, level });
+  const sel = div.querySelector(".s-rapport-preset");
+  sel.onchange = () => {
+    const p = state.rapport.presets.find(p => p.id === sel.value);
+    const level = p ? Math.min(eff.level || 1, p.levels.length) : 1;
+    setOverride(sel.value, level || 1);
+  };
+  $$(".s-rapport-dots .dot", div).forEach(d => {
+    d.onclick = () => setOverride(sel.value, parseInt(d.dataset.n, 10));
+  });
+  const followBtn = div.querySelector(".btn-follow-default");
+  if (followBtn) followBtn.onclick = () => post("/api/goals/session/rapport/clear", { sessionId: s.session_id });
+  div.querySelector(".btn-edit-session-preset").onclick = () => openPresetModal(sel.value || eff.preset);
+  $$(".s-rapport-enabled-btn", div).forEach(btn => {
+    btn.onclick = () => {
+      const raw = btn.dataset.val;
+      const value = raw === "" ? null : (raw === "true");
+      post("/api/goals/session/rapport_enabled", { sessionId: s.session_id, value });
+    };
+  });
+  return div;
+}
+
+function renderProjectChip(s, ui) {
+  const wrap = document.createElement("div");
+  wrap.className = "card-project-chip-wrap";
+  if (ui.projectChipEditing) {
+    const draftId = `session-project:${s.session_id}`;
+    wrap.innerHTML = `
+      <div class="project-chip-edit-row">
+        <input type="text" class="s-project-chip-input" style="min-width:200px;">
+        <button class="primary btn-project-chip-save">儲存</button>
+        <button class="btn-project-chip-cancel">取消</button>
+      </div>
+    `;
+    const input = wrap.querySelector(".s-project-chip-input");
+    input.value = ui.projectChipDraft !== null ? ui.projectChipDraft : (s.project || "");
+    input.oninput = () => { ui.projectChipDraft = input.value; };
+    const saveBtn = wrap.querySelector(".btn-project-chip-save");
+    applySaveFlash(saveBtn, draftId);
+    saveBtn.onclick = () => {
+      saveWithFeedback(draftId, saveBtn, "/api/goals/session", {
+        sessionId: s.session_id, project: input.value,
+      }, () => {
+        ui.projectChipEditing = false;
+        ui.projectChipDraft = null;
+      });
+    };
+    wrap.querySelector(".btn-project-chip-cancel").onclick = () => {
+      ui.projectChipEditing = false;
+      ui.projectChipDraft = null;
+      renderSessions();
+    };
+  } else {
+    wrap.innerHTML = `
+      <span class="project-chip" title="${escapeAttr(s.project || "")}">${escapeHtml(basename(s.project))}</span>
+      <button class="pencil" title="編輯 Project 路徑">✎</button>
+    `;
+    wrap.querySelector(".project-chip").onclick = () => scrollToProject(s.project);
+    wrap.querySelector(".pencil").onclick = () => {
+      ui.projectChipEditing = true;
+      ui.projectChipDraft = s.project || "";
+      renderSessions();
+    };
+  }
+  return wrap;
+}
+
+async function fetchWorkLog(sessionId, workFrom, workTo) {
+  let url = `/api/session/log?session=${encodeURIComponent(sessionId)}`;
+  if (workFrom !== undefined && workFrom !== null) url += `&work_from=${workFrom}`;
+  if (workTo !== undefined && workTo !== null) url += `&work_to=${workTo}`;
+  const data = await api("GET", url);
+  return data.text || "";
+}
+
+// 目前選到的範圍 -> {wf, wt}（都 undefined 代表全部）。
+function workLogSelectionParams(s, ui) {
+  const sel = ui.workLogSelection || { mode: "all" };
+  if (sel.mode === "latest") {
+    const ws = s.work_sessions || [];
+    if (!ws.length) return {};
+    const idx = ws[ws.length - 1].index;
+    return { wf: idx, wt: idx };
+  }
+  if (sel.mode === "range" && sel.from != null && sel.to != null) {
+    return { wf: sel.from, wt: sel.to };
+  }
+  return {};
+}
+
+function workLogSelectionLabel(sel) {
+  if (!sel || sel.mode === "all") return "全部";
+  if (sel.mode === "latest") return "最新一次工作階段";
+  if (sel.mode === "range" && sel.from != null && sel.to != null) {
+    return sel.from === sel.to ? `工作階段 #${sel.from}` : `工作階段 #${sel.from}–#${sel.to}`;
+  }
+  return "全部";
+}
+
+function workLogSessionOptionLabel(ws) {
+  if (ws.index === 0) return "#0　紀錄開始前";
+  const s = fmtParts(ws.start);
+  const startStr = s ? `${s.mm}-${s.dd} ${s.hh}:${s.mi}` : "？";
+  let endStr = "";
+  if (ws.end) {
+    const e = fmtParts(ws.end);
+    endStr = e ? `${e.hh}:${e.mi}` : "";
+  }
+  return `#${ws.index}　${startStr}–${endStr}`;
+}
+
+// 打開中的工作紀錄跟著每次狀態更新重新讀（依目前選到的範圍），內容不會停在打開當下。
+async function refreshOpenWorkLogs() {
+  const sessions = [...(state.goals.sessions || []), ...(state.goals.idle_sessions || [])];
+  await Promise.all(sessions.map(async (s) => {
+    const ui = getUi(s.session_id);
+    if (!ui.workLogOpen) return;
+    const p = workLogSelectionParams(s, ui);
+    try { ui.workLogText = await fetchWorkLog(s.session_id, p.wf, p.wt); } catch (e) { /* keep last text */ }
+  }));
+}
+
+function renderWorkLogControls(s, ui) {
+  const wrap = document.createElement("div");
+  wrap.className = "work-log-controls";
+
+  const row = document.createElement("div");
+  row.className = "work-log-btn-row";
+
+  // 主按鈕：一律複製全部。
+  const btnCopy = document.createElement("button");
+  btnCopy.className = "ghost btn-worklog-copy";
+  if (ui.workLogCopyState === "ok") {
+    btnCopy.textContent = "已複製 ✓";
+    btnCopy.classList.add("save-ok");
+  } else if (ui.workLogCopyState === "err") {
+    btnCopy.textContent = "複製失敗";
+    btnCopy.classList.add("save-err");
+  } else {
+    btnCopy.textContent = "複製工作紀錄";
+  }
+  btnCopy.onclick = async (e) => {
+    e.stopPropagation();
+    try {
+      const text = await fetchWorkLog(s.session_id);
+      if (ui.workLogSelection && ui.workLogSelection.mode === "all") ui.workLogText = text;
+      await copyTextRobust(text);
+      ui.workLogCopyState = "ok";
+    } catch (err) {
+      ui.workLogCopyState = "err";
+    }
+    renderSessions();
+    setTimeout(() => {
+      ui.workLogCopyState = null;
+      renderSessions();
+    }, 2000);
+  };
+  row.appendChild(btnCopy);
+
+  const btnMenu = document.createElement("button");
+  btnMenu.className = "ghost btn-worklog-menu-toggle";
+  btnMenu.textContent = "▾";
+  btnMenu.title = "選擇範圍複製";
+  btnMenu.onclick = (e) => {
+    e.stopPropagation();
+    ui.workLogMenuOpen = !ui.workLogMenuOpen;
+    renderSessions();
+  };
+  row.appendChild(btnMenu);
+
+  const btnView = document.createElement("button");
+  btnView.className = "ghost btn-worklog-view";
+  btnView.textContent = ui.workLogOpen ? "隱藏工作紀錄" : "檢視";
+  btnView.onclick = async (e) => {
+    e.stopPropagation();
+    if (!ui.workLogOpen) {
+      const p = workLogSelectionParams(s, ui);
+      try {
+        ui.workLogText = await fetchWorkLog(s.session_id, p.wf, p.wt);
+      } catch (err) {
+        showToast("讀取工作紀錄失敗：" + err.message);
+        return;
+      }
+    }
+    ui.workLogOpen = !ui.workLogOpen;
+    renderSessions();
+  };
+  row.appendChild(btnView);
+
+  wrap.appendChild(row);
+
+  if (ui.workLogMenuOpen) {
+    wrap.appendChild(renderWorkLogMenu(s, ui));
+  }
+
+  return wrap;
+}
+
+function renderWorkLogMenu(s, ui) {
+  const menu = document.createElement("div");
+  menu.className = "work-log-menu";
+  const sel = ui.workLogSelection || { mode: "all" };
+
+  const applySelection = async (newSel) => {
+    ui.workLogSelection = newSel;
+    ui.workLogMenuOpen = false;
+    ui.workLogRangePicking = false;
+    const p = workLogSelectionParams(s, ui);
+    try {
+      const text = await fetchWorkLog(s.session_id, p.wf, p.wt);
+      if (ui.workLogOpen) ui.workLogText = text;
+      await copyTextRobust(text);
+      ui.workLogCopyState = "ok";
+    } catch (err) {
+      ui.workLogCopyState = "err";
+    }
+    renderSessions();
+    setTimeout(() => { ui.workLogCopyState = null; renderSessions(); }, 2000);
+  };
+
+  const optAll = document.createElement("button");
+  optAll.className = "ghost work-log-menu-item" + (sel.mode === "all" ? " selected" : "");
+  optAll.textContent = "全部";
+  optAll.onclick = (e) => { e.stopPropagation(); applySelection({ mode: "all" }); };
+  menu.appendChild(optAll);
+
+  const hasWorkSessions = !!(s.work_sessions && s.work_sessions.length);
+  const optLatest = document.createElement("button");
+  optLatest.className = "ghost work-log-menu-item" + (sel.mode === "latest" ? " selected" : "");
+  optLatest.textContent = "最新一次工作階段";
+  optLatest.disabled = !hasWorkSessions;
+  optLatest.onclick = (e) => { e.stopPropagation(); applySelection({ mode: "latest" }); };
+  menu.appendChild(optLatest);
+
+  const optRange = document.createElement("button");
+  optRange.className = "ghost work-log-menu-item" + (sel.mode === "range" ? " selected" : "");
+  optRange.textContent = "指定範圍…";
+  optRange.onclick = (e) => {
+    e.stopPropagation();
+    ui.workLogRangePicking = !ui.workLogRangePicking;
+    renderSessions();
+  };
+  menu.appendChild(optRange);
+
+  if (ui.workLogRangePicking) {
+    const ws = hasWorkSessions ? s.work_sessions : ((state.work && state.work.sessions) || []);
+    if (!ws.length) {
+      const note = document.createElement("div");
+      note.className = "work-log-range-note";
+      note.textContent = "這個對話還沒有任何工作階段的紀錄。";
+      menu.appendChild(note);
+    } else {
+      const rangeRow = document.createElement("div");
+      rangeRow.className = "work-log-range-row";
+      const selFrom = document.createElement("select");
+      const selTo = document.createElement("select");
+      ws.forEach(w => {
+        const o1 = document.createElement("option");
+        o1.value = w.index;
+        o1.textContent = workLogSessionOptionLabel(w);
+        selFrom.appendChild(o1);
+        const o2 = document.createElement("option");
+        o2.value = w.index;
+        o2.textContent = workLogSessionOptionLabel(w);
+        selTo.appendChild(o2);
+      });
+      const curFrom = sel.mode === "range" && sel.from != null ? sel.from : ws[0].index;
+      const curTo = sel.mode === "range" && sel.to != null ? sel.to : ws[ws.length - 1].index;
+      selFrom.value = String(curFrom);
+      selTo.value = String(curTo);
+      rangeRow.appendChild(selFrom);
+      rangeRow.appendChild(document.createTextNode(" – "));
+      rangeRow.appendChild(selTo);
+      const btnCopyRange = document.createElement("button");
+      btnCopyRange.className = "ghost";
+      btnCopyRange.textContent = "複製";
+      btnCopyRange.onclick = (e) => {
+        e.stopPropagation();
+        const from = parseInt(selFrom.value, 10);
+        const to = parseInt(selTo.value, 10);
+        applySelection({ mode: "range", from: Math.min(from, to), to: Math.max(from, to) });
+      };
+      rangeRow.appendChild(btnCopyRange);
+      menu.appendChild(rangeRow);
+    }
+  }
+
+  return menu;
+}
+
+// 工作紀錄全文放在上排之外：長行不會把上排撐寬、把按鈕擠出畫面。
+function renderWorkLogView(s, ui) {
+  const box = document.createElement("div");
+  box.className = "work-log-view section-block";
+  const head = document.createElement("div");
+  head.className = "work-log-view-head";
+  const rangeLabel = workLogSelectionLabel(ui.workLogSelection);
+  head.innerHTML = `<span class="field-label">工作紀錄　<span class="muted">${escapeHtml(rangeLabel)}</span></span>`;
+  const btnClose = document.createElement("button");
+  btnClose.className = "ghost";
+  btnClose.textContent = "收起";
+  btnClose.onclick = (e) => {
+    e.stopPropagation();
+    ui.workLogOpen = false;
+    renderSessions();
+  };
+  head.appendChild(btnClose);
+  box.appendChild(head);
+  const pre = document.createElement("pre");
+  pre.textContent = ui.workLogText || "";
+  box.appendChild(pre);
+  return box;
+}
+
+function renderActiveBlock(s, ui) {
+  const div = document.createElement("div");
+  const isActive = s.status === "active";
+  div.className = "active-block" + (isActive ? "" : " unset");
+
+  if (ui.activePanel === "edit") {
+    div.innerHTML = `
+      <div class="active-block-title">${isActive ? "編輯 Objective" : "設定 Objective"}</div>
+      <div class="active-field-label">Objective</div>
+      <textarea class="s-active-objective"></textarea>
+      <div class="active-field-label">Success Criteria</div>
+      <textarea class="s-active-criteria"></textarea>
+      <div class="active-actions">
+        <button class="primary btn-active-save">儲存</button>
+        <button class="btn-active-cancel">取消</button>
+      </div>
+    `;
+    const objInput = div.querySelector(".s-active-objective");
+    const critInput = div.querySelector(".s-active-criteria");
+    objInput.value = ui.objectiveDraft !== null ? ui.objectiveDraft : (s.objective || "");
+    critInput.value = ui.criteriaDraft !== null ? ui.criteriaDraft : (s.success_criteria || "");
+    objInput.oninput = () => { ui.objectiveDraft = objInput.value; };
+    critInput.oninput = () => { ui.criteriaDraft = critInput.value; };
+    const saveBtn = div.querySelector(".btn-active-save");
+    const flashId = `session-active:${s.session_id}`;
+    applySaveFlash(saveBtn, flashId);
+    saveBtn.onclick = () => {
+      const body = {
+        sessionId: s.session_id,
+        objective: objInput.value,
+        success_criteria: critInput.value,
+      };
+      if (!isActive) body.status = "active";
+      saveWithFeedback(flashId, saveBtn, "/api/goals/session", body, () => {
+        ui.objectiveDraft = null;
+        ui.criteriaDraft = null;
+        ui.activePanel = null;
+      });
+    };
+    div.querySelector(".btn-active-cancel").onclick = () => {
+      ui.objectiveDraft = null;
+      ui.criteriaDraft = null;
+      ui.activePanel = null;
+      renderSessions();
+    };
+    return div;
+  }
+
+  if (!isActive) {
+    div.innerHTML = `
+      <div class="active-block-title muted">尚未設定</div>
+      <div class="active-actions">
+        <button class="primary btn-active-set">設定目標</button>
+      </div>
+    `;
+    div.querySelector(".btn-active-set").onclick = () => {
+      ui.objectiveDraft = "";
+      ui.criteriaDraft = "";
+      ui.activePanel = "edit";
+      renderSessions();
+    };
+    return div;
+  }
+
+  const editCount = (s.edits || []).length;
+  div.innerHTML = `
+    <div class="active-block-head">
+      <span class="active-block-title">進行中</span>
+      <span class="muted">開始於 ${escapeHtml(relativeTime(s.started))}</span>
+    </div>
+    <div class="active-field-label">Objective</div>
+    <div class="active-field-text">${escapeHtml(s.objective || "（尚未設定）")}</div>
+    <div class="active-field-label">Success Criteria</div>
+    <div class="active-field-text">${escapeHtml(s.success_criteria || "（尚未設定）")}</div>
+    <div class="active-field-label">進行 / 擱置</div>
+    <div class="muted segments-line">${activeSegmentsText(s)}</div>
+    <div class="active-field-label">Rapport 變化（每次送出當下）</div>
+    ${rapportChangesHtml(rapportChangeList(s, s.oid, s.started, null))}
+    <details class="records-details" style="margin-top:8px;">
+      <summary>修改紀錄（${editCount}）</summary>
+      <div class="edits-list s-active-edits" style="margin-top:6px;"></div>
+    </details>
+    <div class="active-actions">
+      <button class="btn-active-edit">編輯</button>
+      <button class="btn-active-success">成功</button>
+      <button class="btn-active-park">擱置</button>
+      <button class="btn-active-fail">失敗</button>
+    </div>
+  `;
+  const details = div.querySelector(".records-details");
+  details.open = !!ui.recordsOpen;
+  details.addEventListener("toggle", () => { ui.recordsOpen = details.open; });
+  const editsWrap = div.querySelector(".s-active-edits");
+  const edits = s.edits || [];
+  editsWrap.innerHTML = edits.length ? [...edits].reverse().map(ed => `
+    <div class="edit-item">
+      <span class="muted">${escapeHtml(closedByLabel(ed.actor))} · ${escapeHtml(relativeTime(ed.at))}</span><br>
+      ${(ed.reason || ed.note) ? `<span>理由：${escapeHtml(ed.reason || ed.note)}</span><br>` : ""}
+      <span class="muted">${escapeHtml((ed.before && ed.before.objective) || "（空）")}</span>
+      → <span>${escapeHtml((ed.after && ed.after.objective) || "（空）")}</span>
+    </div>
+  `).join("") : `<div class="muted">沒有修改紀錄。</div>`;
+
+  div.querySelector(".btn-active-edit").onclick = () => {
+    ui.objectiveDraft = s.objective || "";
+    ui.criteriaDraft = s.success_criteria || "";
+    ui.activePanel = "edit";
+    renderSessions();
+  };
+  div.querySelector(".btn-active-park").onclick = () =>
+    post("/api/goals/session/park", { sessionId: s.session_id, reason: "" });
+  div.querySelector(".btn-active-success").onclick = () => {
+    ui.activePanel = ui.activePanel === "confirm-success" ? null : "confirm-success";
+    renderSessions();
+  };
+  div.querySelector(".btn-active-fail").onclick = () => {
+    ui.activePanel = ui.activePanel === "confirm-fail" ? null : "confirm-fail";
+    renderSessions();
+  };
+
+  if (ui.activePanel === "confirm-success" || ui.activePanel === "confirm-fail") {
+    const isSuccess = ui.activePanel === "confirm-success";
+    const confirmDiv = document.createElement("div");
+    confirmDiv.className = "inline-confirm";
+    confirmDiv.innerHTML = `
+      <input type="text" class="close-note" placeholder="備註（可留空）" style="width:100%;">
+      <div class="row" style="margin-top:6px;">
+        <button class="primary btn-close-confirm">${isSuccess ? "確認成功" : "確認失敗"}</button>
+        <button class="btn-close-cancel">取消</button>
+      </div>
+    `;
+    const note = confirmDiv.querySelector(".close-note");
+    note.value = ui.closeNote || "";
+    note.oninput = () => { ui.closeNote = note.value; };
+    confirmDiv.querySelector(".btn-close-confirm").onclick = () => {
+      const path = isSuccess ? "/api/goals/session/done" : "/api/goals/session/fail";
+      const noteVal = ui.closeNote || "";
+      ui.closeNote = "";
+      ui.activePanel = null;
+      post(path, { sessionId: s.session_id, note: noteVal });
+    };
+    confirmDiv.querySelector(".btn-close-cancel").onclick = () => {
+      ui.activePanel = null;
+      renderSessions();
+    };
+    div.appendChild(confirmDiv);
+  }
+
+  return div;
+}
+
+function renderParkedList(s, ui) {
+  const parked = s.parked || [];
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `<div class="field-label">擱置（${parked.length}）</div>`;
+  const list = document.createElement("div");
+  list.className = "parked-list";
+  parked.forEach((b, idx) => {
+    const row = document.createElement("div");
+    row.className = "parked-row";
+    row.draggable = true;
+    row.dataset.oid = b.oid;
+    row.innerHTML = `
+      <span class="parked-handle" title="拖曳排序">⠿</span>
+      <span class="parked-order">${idx + 1}</span>
+      <div class="parked-body">
+        <div class="parked-obj">${escapeHtml(b.objective || "（尚未設定）")}</div>
+        <div class="parked-criteria">${escapeHtml(b.success_criteria || "")}</div>
+        <div class="parked-meta">擱置於：${escapeHtml(relativeTime(b.parked_at))}</div>
+      </div>
+      <div class="parked-actions">
+        <div class="row">
+          <button class="ghost btn-parked-up" title="上移"${idx === 0 ? " disabled" : ""}>↑</button>
+          <button class="ghost btn-parked-down" title="下移"${idx === parked.length - 1 ? " disabled" : ""}>↓</button>
+        </div>
+        <button class="primary btn-parked-switch">切上來</button>
+        <button class="btn-parked-delete">移除</button>
+      </div>
+    `;
+    row.querySelector(".btn-parked-switch").onclick = () =>
+      post("/api/goals/session/parked/switch", { sessionId: s.session_id, oid: b.oid });
+    row.querySelector(".parked-actions").appendChild(
+      renderAmendControl(s, ui, "amend:p" + (b.oid || idx), b.oid || `P${idx + 1}`, [
+        { label: "成功", val: "achieved" },
+        { label: "失敗", val: "failed" },
+      ])
+    );
+
+    const moveTo = (from, to) => {
+      if (to < 0 || to >= parked.length) return;
+      const oids = parked.map(x => x.oid);
+      const [m] = oids.splice(from, 1);
+      oids.splice(to, 0, m);
+      post("/api/goals/session/parked/reorder", { sessionId: s.session_id, oids });
+    };
+    row.querySelector(".btn-parked-up").onclick = () => moveTo(idx, idx - 1);
+    row.querySelector(".btn-parked-down").onclick = () => moveTo(idx, idx + 1);
+
+    const delBtn = row.querySelector(".btn-parked-delete");
+    delBtn.onclick = () => {
+      ui.parkedDeleteConfirm = ui.parkedDeleteConfirm === b.oid ? null : b.oid;
+      renderSessions();
+    };
+    if (ui.parkedDeleteConfirm === b.oid) {
+      const confirmDiv = document.createElement("div");
+      confirmDiv.className = "inline-confirm";
+      confirmDiv.innerHTML = `
+        <div>確定移除這個擱置的 Objective？</div>
+        <div class="row" style="margin-top:6px;">
+          <button class="danger btn-parked-delete-confirm">確認移除</button>
+          <button class="btn-parked-delete-cancel">取消</button>
+        </div>
+      `;
+      confirmDiv.querySelector(".btn-parked-delete-confirm").onclick = () => {
+        ui.parkedDeleteConfirm = null;
+        post("/api/goals/session/parked/delete", { sessionId: s.session_id, oid: b.oid });
+      };
+      confirmDiv.querySelector(".btn-parked-delete-cancel").onclick = () => {
+        ui.parkedDeleteConfirm = null;
+        renderSessions();
+      };
+      row.querySelector(".parked-body").appendChild(confirmDiv);
+    }
+
+    // native HTML5 drag-and-drop reorder (↑/↓ buttons above are the
+    // touch/keyboard fallback).
+    row.addEventListener("dragstart", (e) => {
+      ui.dragOid = b.oid;
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", b.oid); } catch (err) { /* ignore */ }
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      const fromOid = ui.dragOid;
+      ui.dragOid = null;
+      if (!fromOid || fromOid === b.oid) return;
+      const oids = parked.map(x => x.oid);
+      const fromIdx = oids.indexOf(fromOid);
+      const toIdx = oids.indexOf(b.oid);
+      if (fromIdx === -1 || toIdx === -1) return;
+      oids.splice(toIdx, 0, oids.splice(fromIdx, 1)[0]);
+      post("/api/goals/session/parked/reorder", { sessionId: s.session_id, oids });
+    });
+
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function renderSessionCard(s) {
+  const ui = getUi(s.session_id);
+  const div = document.createElement("div");
+  div.className = "session-card";
+  div.dataset.sessionId = s.session_id;
+
+  const stripe = document.createElement("div");
+  stripe.className = "stripe";
+  stripe.style.background = stripeColor(s.session_id);
+  div.appendChild(stripe);
+
+  const body = document.createElement("div");
+  body.className = "session-body";
+
+  // -- header --
+  const header = document.createElement("div");
+  header.className = "card-header";
+  const revived = s.revived_at && (Date.now() - new Date(s.revived_at).getTime()) < 6 * 3600 * 1000;
+  const rapportChip = (s.rapport_enabled_effective === false)
+    ? `Rapport 關 · ${s.rapport_enabled_source === "session" ? "個別設定" : "跟隨全域"}`
+    : `L${(s.rapport_effective || {}).level || ""} ${escapeHtml((s.rapport_effective || {}).name || "")} · ${s.rapport ? "個別設定" : "跟隨預設"}`;
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "card-title-row";
+  if (ui.editingNickname) {
+    titleRow.innerHTML = `
+      <input type="text" class="s-nickname-input" style="min-width:160px;" placeholder="輸入暱稱，留空清除">
+      <button class="ghost btn-nickname-save">✓</button>
+      <button class="ghost btn-nickname-cancel">✕</button>
+    `;
+  } else {
+    titleRow.innerHTML = `
+      <span class="card-title">${escapeHtml(sessionTitle(s))}</span>
+      <button class="pencil" title="編輯暱稱">✎</button>
+      <span class="badge">${escapeHtml(agentLabel(s.agent))}</span>
+      <span class="short-id mono" title="${escapeAttr(s.session_id)}">${escapeHtml((s.session_id || "").slice(0, 8))}</span>
+      ${s.project ? `<span class="project-chip" title="${escapeAttr(s.project)}">${escapeHtml(basename(s.project))}</span>` : ""}
+      ${(s.parked && s.parked.length) ? `<span class="badge">擱置 ${s.parked.length}</span>` : ""}
+      ${revived ? `<span class="badge accent">剛從封存回來</span>` : ""}
+    `;
+  }
+  header.appendChild(titleRow);
+
+  const rightMeta = document.createElement("div");
+  rightMeta.style.textAlign = "right";
+  rightMeta.innerHTML = `<span class="muted s-relative-time" data-last-seen="${escapeAttr(s.last_seen || "")}">${escapeHtml(relativeTime(s.last_seen))}</span>`;
+  header.appendChild(rightMeta);
+
+  header.style.cursor = "pointer";
+  header.onclick = (e) => {
+    if (e.target.closest(".pencil, .s-nickname-input, .btn-nickname-save, .btn-nickname-cancel, .short-id")) return;
+    ui.expanded = !ui.expanded;
+    renderSessions();
+  };
+  body.appendChild(header);
+
+  if (ui.editingNickname) {
+    const input = titleRow.querySelector(".s-nickname-input");
+    input.value = ui.nicknameDraft !== null ? ui.nicknameDraft : (s.nickname || "");
+    input.oninput = () => { ui.nicknameDraft = input.value; };
+    input.onclick = (e) => e.stopPropagation();
+    titleRow.querySelector(".btn-nickname-save").onclick = async (e) => {
+      e.stopPropagation();
+      const val = input.value;
+      const btn = titleRow.querySelector(".btn-nickname-save");
+      btn.disabled = true;
+      btn.textContent = "…";
+      ui.editingNickname = false;
+      ui.nicknameDraft = null;
+      await post("/api/goals/session/nickname", { sessionId: s.session_id, nickname: val });
+    };
+    titleRow.querySelector(".btn-nickname-cancel").onclick = (e) => {
+      e.stopPropagation();
+      ui.editingNickname = false;
+      ui.nicknameDraft = null;
+      renderSessions();
+    };
+  } else {
+    titleRow.querySelector(".pencil").onclick = (e) => {
+      e.stopPropagation();
+      ui.editingNickname = true;
+      ui.nicknameDraft = s.nickname || "";
+      renderSessions();
+    };
+    const sid = titleRow.querySelector(".short-id");
+    if (sid) sid.onclick = (e) => { e.stopPropagation(); copyToClipboard(s.session_id); };
+    const chip = titleRow.querySelector(".project-chip");
+    if (chip) chip.onclick = (e) => { e.stopPropagation(); scrollToProject(s.project); };
+  }
+
+  // -- collapsed one-liner --
+  const oneliner = document.createElement("div");
+  oneliner.className = "card-oneliner";
+  const objText = s.status === "active" ? (s.objective || "（尚未設定）") : "沒有進行中的 Objective";
+  oneliner.innerHTML = `${escapeHtml(objText)} <span class="badge" style="margin-left:6px;">${escapeHtml(rapportChip)}</span>`;
+  body.appendChild(oneliner);
+
+  // -- expanded body --
+  if (ui.expanded) {
+    const expand = document.createElement("div");
+    expand.className = "card-expand-body";
+
+    // 1. top row: per-session Rapport controls (left) + project chip (right)
+    const topRow = document.createElement("div");
+    topRow.className = "card-top-row section-block";
+    const rapportWrap = document.createElement("div");
+    rapportWrap.className = "s-rapport-wrap";
+    rapportWrap.appendChild(renderSessionRapport(s));
+    topRow.appendChild(rapportWrap);
+    if (s.project) topRow.appendChild(renderProjectChip(s, ui));
+    topRow.appendChild(renderWorkLogControls(s, ui));
+    expand.appendChild(topRow);
+    if (ui.workLogOpen) expand.appendChild(renderWorkLogView(s, ui));
+
+    // 2. 進行中 / 尚未設定 block
+    const activeWrap = document.createElement("div");
+    activeWrap.className = "section-block";
+    activeWrap.appendChild(renderActiveBlock(s, ui));
+    expand.appendChild(activeWrap);
+
+    // 3. 擱置（N） list -- hidden when empty
+    if ((s.parked || []).length) {
+      const parkedWrap = document.createElement("div");
+      parkedWrap.className = "section-block";
+      parkedWrap.appendChild(renderParkedList(s, ui));
+      expand.appendChild(parkedWrap);
+    }
+
+    // 4. 已結案 timeline
+    const tlBlock = document.createElement("div");
+    tlBlock.className = "section-block";
+    tlBlock.innerHTML = `<div class="field-label">已結案</div>`;
+    const tlWrap = document.createElement("div");
+    tlWrap.className = "timeline";
+    const entries = buildTimelineEntries(s);
+    if (!entries.length) {
+      tlWrap.innerHTML = `<div class="muted">目前沒有任何已結案的 Objective。</div>`;
+    } else {
+      entries.forEach(entry => tlWrap.appendChild(renderTimelineItem(s, entry, ui)));
+    }
+    tlBlock.appendChild(tlWrap);
+    expand.appendChild(tlBlock);
+
+    // 5. 封存 (bottom), plus a context preview kept alongside it
+    const bottomBlock = document.createElement("div");
+    bottomBlock.className = "section-block";
+    const bottomRow = document.createElement("div");
+    bottomRow.className = "row";
+    const previewBtn = document.createElement("button");
+    previewBtn.textContent = "預覽 context";
+    const previewPre = document.createElement("pre");
+    previewPre.className = "preview";
+    previewPre.style.display = "none";
+    previewBtn.onclick = async () => {
+      try {
+        const res = await api("GET", `/api/context?session=${encodeURIComponent(s.session_id)}&cwd=${encodeURIComponent(s.cwd || ".")}`);
+        previewPre.textContent = res.context || "（空）";
+        previewPre.style.display = "block";
+      } catch (e) {
+        showToast("預覽失敗：" + e.message);
+      }
+    };
+    bottomRow.appendChild(previewBtn);
+    const archiveBtn = document.createElement("button");
+    archiveBtn.textContent = "封存";
+    archiveBtn.onclick = () => post("/api/goals/session/archive", { sessionId: s.session_id });
+    bottomRow.appendChild(archiveBtn);
+    bottomBlock.appendChild(bottomRow);
+    bottomBlock.appendChild(previewPre);
+    expand.appendChild(bottomBlock);
+
+    body.appendChild(expand);
+  }
+
+  div.appendChild(body);
+  return div;
+}
+
+function updateRelativeTimes() {
+  $$(".s-relative-time").forEach(el => {
+    el.textContent = relativeTime(el.dataset.lastSeen);
+  });
+}
+setInterval(updateRelativeTimes, 30000);
+
+// ============================================================================
+// Wiring: top-level buttons
+// ============================================================================
+
+$("#btn-create-preset").onclick = () => {
+  const name = $("#new-preset-name").value.trim();
+  if (!name) return;
+  $("#new-preset-name").value = "";
+  (async () => {
+    try {
+      const before = new Set(state.rapport.presets.map(p => p.id));
+      state = await api("POST", "/api/rapport/preset/create", { name });
+      const created = state.rapport.presets.find(p => !before.has(p.id));
+      modalState.presetId = created ? created.id : state.rapport.activePreset;
+      render();
+    } catch (e) {
+      showToast(e.message);
+    }
+  })();
+};
+$("#btn-rename-preset").onclick = () => {
+  const preset = state.rapport.presets.find(p => p.id === modalState.presetId) || activePreset();
+  const name = $("#rename-preset-name").value.trim();
+  if (!preset || !name) return;
+  (async () => {
+    try {
+      state = await api("POST", "/api/rapport/preset/rename", { presetId: preset.id, name });
+      render();
+    } catch (e) {
+      showToast(e.message);
+    }
+  })();
+};
+$("#btn-delete-preset").onclick = () => {
+  const preset = state.rapport.presets.find(p => p.id === modalState.presetId) || activePreset();
+  if (!preset) return;
+  modalState.deleteConfirm = true;
+  render();
+};
+$("#btn-add-level").onclick = () => {
+  const preset = state.rapport.presets.find(p => p.id === modalState.presetId) || activePreset();
+  if (!preset) return;
+  post("/api/rapport/level/add", { presetId: preset.id });
+};
+$("#btn-remove-level").onclick = () => {
+  const preset = state.rapport.presets.find(p => p.id === modalState.presetId) || activePreset();
+  if (!preset) return;
+  post("/api/rapport/level/remove", { presetId: preset.id });
+};
+$("#btn-save-ultimate").onclick = () => {
+  const goal = $("#ultimate-goal").value;
+  const definition = $("#ultimate-definition").value;
+  saveWithFeedback("ultimate", $("#btn-save-ultimate"), "/api/goals/ultimate", { goal, definition }, () => {
+    clearDraft("ultimate.goal");
+    clearDraft("ultimate.definition");
+  });
+};
+$("#btn-add-project").onclick = () => {
+  const path = $("#new-project-path").value.trim();
+  if (!path) return;
+  const btn = $("#btn-add-project");
+  saveWithFeedback("add-project", btn, "/api/goals/project", { path, super_objective: "" }, () => {
+    $("#new-project-path").value = "";
+  });
+};
+
+refresh();
+setInterval(() => {
+  const el = document.activeElement;
+  if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) return;
+  refresh();
+}, 30000);
+</script>
+</body>
+</html>

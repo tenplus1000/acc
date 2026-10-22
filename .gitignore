@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# 本機資料與設定（資料根目錄在 repo 外；這些是誤放進來時的保險）
+.agent-context/
+events.jsonl
+.snapshots.json
+logs/
+*.log
+.env
+.env.*
+
+# 編輯器與系統
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
