@@ -196,3 +196,7 @@ read straight from it.
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE). If Agent Context Controller helps your work, a mention or a link back is appreciated.

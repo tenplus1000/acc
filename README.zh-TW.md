@@ -165,3 +165,7 @@ Ultimate / Super Objective 變更紀錄是直接從這份 log 讀出來顯示的
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+## 授權
+
+MIT，見 [LICENSE](LICENSE)。如果這個工具對你有幫助，歡迎在你的作品或文章裡提一下、附上連結。
